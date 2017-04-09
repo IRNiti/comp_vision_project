@@ -8,13 +8,13 @@ This is a script to segregate the provided labeled images into the following dir
 /train
     /cats
     /dogs
-/eval
+
+
+To work with the Pytorch ImageFolder API, it also randomly segregates the test images, though these labels are random and mostly meaningless.
+
+/test
     /cats
     /dogs
-
-From the original 6k labelled images, we allocate roughly 75% to a training set and 25% to a labelled eval set (separate from the final, initially unlabelled, test set).
-
-We decided on this split after reading http://stackoverflow.com/questions/13610074/is-there-a-rule-of-thumb-for-how-to-divide-a-dataset-into-training-and-validatio
 '''
 
 import os
@@ -22,35 +22,32 @@ import shutil
 
 LABELS_CSV = 'Y_Train.csv'
 ORIGINAL_COMBINED_TRAIN_DIR = 'X_Train'
+ORIGINAL_COMBINED_TEST_DIR = 'X_Test'
 
 NEW_ROOT_TRAIN_DIR = 'segregated_train'
-NEW_ROOT_EVAL_DIR = 'segregated_eval'
+NEW_ROOT_TEST_DIR = 'rand_segregated_test'
 
-CATS_DIR = 'cats'
-DOGS_DIR = 'dogs'
+CATS_TRAIN_DIR = os.path.join(NEW_ROOT_TRAIN_DIR, 'cats')
+DOGS_TRAIN_DIR = os.path.join(NEW_ROOT_TRAIN_DIR, 'dogs')
+
+CATS_TEST_DIR = os.path.join(NEW_ROOT_TEST_DIR, 'cats')
+DOGS_TEST_DIR = os.path.join(NEW_ROOT_TEST_DIR, 'dogs')
 
 
 def ensure_dest_directories_exist():
     if not os.path.exists(NEW_ROOT_TRAIN_DIR):
         os.makedirs(NEW_ROOT_TRAIN_DIR)
-    if not os.path.exists(NEW_ROOT_EVAL_DIR):
-        os.makedirs(NEW_ROOT_EVAL_DIR)
+    if not os.path.exists(CATS_TRAIN_DIR):
+        os.makedirs(CATS_TRAIN_DIR)
+    if not os.path.exists(DOGS_TRAIN_DIR):
+        os.makedirs(DOGS_TRAIN_DIR)
 
-    train_cat_dir = os.path.join(NEW_ROOT_TRAIN_DIR, CATS_DIR)
-    if not os.path.exists(train_cat_dir):
-        os.makedirs(train_cat_dir)
-
-    train_dog_dir = os.path.join(NEW_ROOT_TRAIN_DIR, DOGS_DIR)
-    if not os.path.exists(train_dog_dir):
-        os.makedirs(train_dog_dir)
-
-    eval_cat_dir = os.path.join(NEW_ROOT_EVAL_DIR, CATS_DIR)
-    if not os.path.exists(eval_cat_dir):
-        os.makedirs(eval_cat_dir)
-
-    eval_dog_dir = os.path.join(NEW_ROOT_EVAL_DIR, DOGS_DIR)
-    if not os.path.exists(eval_dog_dir):
-        os.makedirs(eval_dog_dir)
+    if not os.path.exists(NEW_ROOT_TEST_DIR):
+        os.makedirs(NEW_ROOT_TEST_DIR)
+    if not os.path.exists(CATS_TEST_DIR):
+        os.makedirs(CATS_TEST_DIR)
+    if not os.path.exists(DOGS_TEST_DIR):
+        os.makedirs(DOGS_TEST_DIR)
 
 
 if __name__ == '__main__':
@@ -59,29 +56,21 @@ if __name__ == '__main__':
     f = open(LABELS_CSV, 'r')
     f.readline()  # skip first line
 
-    num_cats_so_far = 0
-    num_dogs_so_far = 0
-
     for line in f:
         image_filename, label = tuple(line.split(','))
         orig_absolute_path = os.path.join(ORIGINAL_COMBINED_TRAIN_DIR,
                                           image_filename)
 
-        dest_absolute_path = ''
-        if int(label) == 0:  # cat
-            dest_absolute_path = os.path.join(NEW_ROOT_EVAL_DIR
-                                              if num_cats_so_far % 4 == 0 else
-                                              NEW_ROOT_TRAIN_DIR, CATS_DIR,
-                                              image_filename)
-            num_cats_so_far += 1
-        else:  # dog
-            dest_absolute_path = os.path.join(NEW_ROOT_EVAL_DIR
-                                              if num_dogs_so_far % 4 == 0 else
-                                              NEW_ROOT_TRAIN_DIR, DOGS_DIR,
-                                              image_filename)
-            num_dogs_so_far += 1
+        dest_absolute_path = os.path.join(CATS_TRAIN_DIR, image_filename) if int(label) == 0 else os.path.join(DOGS_TRAIN_DIR, image_filename)
 
         try:
             shutil.copyfile(orig_absolute_path, dest_absolute_path)
         except IOError as e:
             print(e)  # shouldn't happen
+
+    for i, image_filename in enumerate(os.listdir(ORIGINAL_COMBINED_TEST_DIR)):
+        src_absolute_path = os.path.join(ORIGINAL_COMBINED_TEST_DIR, image_filename)
+        
+        dest_absolute_path = os.path.join(CATS_TEST_DIR, image_filename) if i % 2 == 0 else os.path.join(DOGS_TEST_DIR, image_filename)
+
+        shutil.copyfile(src_absolute_path, dest_absolute_path)

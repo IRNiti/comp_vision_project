@@ -6,6 +6,7 @@ Referenced from http://pytorch.org/tutorials/beginner/transfer_learning_tutorial
 '''
 
 import copy
+import csv
 import os
 import time
 
@@ -18,9 +19,8 @@ import torchvision
 from torchvision import datasets, models, transforms
 
 ROOT_TRAINING_DIR = 'segregated_train'
-ROOT_EVAL_DIR = 'segregated_eval'
-
-ROOT_TEST_DIR = 'X_Test'
+ROOT_TEST_DIR = 'rand_segregated_test'
+ORIGINAL_COMBINED_TEST_DIR = 'X_Test'
 
 DEFAULT_NUM_EPOCHS = 5
 
@@ -60,8 +60,10 @@ def loader_from_dataset(dataset):
                                        num_workers=4)  # 4
 
 
-def train_model(model, phase_to_dataset_loader, phase_to_dataset_size, criterion, optim_scheduler,
-                num_epochs=DEFAULT_NUM_EPOCHS):
+def train_model(model, dataset_loader, dataset_size, criterion, optim_scheduler, num_epochs=DEFAULT_NUM_EPOCHS):
+    '''
+    Following code referenced from http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+    '''
     since = time.time()
 
     best_model = model
@@ -71,52 +73,50 @@ def train_model(model, phase_to_dataset_loader, phase_to_dataset_size, criterion
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
 
-        # Each epoch has a training and validation phase
-        for phase in ['train', 'eval']:
-            if phase == 'train':
-                optimizer = optim_scheduler(model, epoch)
 
-            running_loss = 0.0
-            running_corrects = 0
+        optimizer = optim_scheduler(model, epoch)
 
-            dataset = phase_to_dataset_loader[phase].dataset
+        running_loss = 0.0
+        running_corrects = 0
 
-            # Iterate over data.
-            for i, data in enumerate(phase_to_dataset_loader[phase]):
-                # get the inputs and wrapin variable
-                inputs, labels = data
-                
-                inputs, labels = Variable(inputs), Variable(labels)
+        dataset = dataset_loader.dataset
 
-                # zero the parameter gradients
-                optimizer.zero_grad()
+        # Iterate over data.
+        for i, data in enumerate(dataset_loader):
+            # get the inputs and wrap in Variable
+            inputs, labels = dataz
+            inputs, labels = Variable(inputs), Variable(labels)
 
-                # forward
-                outputs = model(inputs)
-                _, preds = torch.max(outputs.data, 1)
+            # zero the parameter gradients
+            optimizer.zero_grad()
 
-                loss = criterion(outputs, labels)
+            # forward
+            outputs = model(inputs)
 
-                # backward + optimize only if in training phase
-                if phase == 'train':
-                    loss.backward()
-                    optimizer.step()
+            # at this point outputs is a a 4x2 FloatTensor
+            # in its second return, torch.max will return the position of the 
+            # max element in each row (as a LongTensor i.e. an integer)
+            _, preds = torch.max(outputs.data, 1)
 
-                # statistics
-                running_loss += loss.data[0]
-                running_corrects += torch.sum(preds == labels.data)
+            loss = criterion(outputs, labels)
 
-            dataset_size = phase_to_dataset_size[phase]
+            # backward + optimize since we are in training phase
+            loss.backward()
+            optimizer.step()
+
+            # statistics
+            running_loss += loss.data[0]
+            running_corrects += torch.sum(preds == labels.data)
+
             epoch_loss = running_loss / dataset_size
             epoch_acc = running_corrects / dataset_size
 
-            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
-                phase, epoch_loss, epoch_acc))
+        print('{} Loss: {:.4f} Acc: {:.4f}'.format('train', epoch_loss, epoch_acc))
 
-            # deep copy the model
-            if phase == 'eval' and epoch_acc > best_acc:
-                best_acc = epoch_acc
-                best_model = copy.deepcopy(model)
+        # deep copy the model
+        if epoch_acc > best_acc:
+            best_acc = epoch_acc
+            best_model = copy.deepcopy(model)
 
         print('****')
 
@@ -126,9 +126,45 @@ def train_model(model, phase_to_dataset_loader, phase_to_dataset_size, criterion
     print('Best val Acc: {:4f}'.format(best_acc))
     return best_model
 
+def test_model(model, dataset, flattened_tensor_to_image_filename):
+    dataset_loader = torch.utils.data.DataLoader(dataset,
+                                       batch_size=4,
+                                       shuffle=True,
+                                       num_workers=4)
+
+    csvfile = open('output2.csv', 'w')
+    csv_writer = csv.writer(csvfile, delimiter=',')
+
+    # Iterate over data.
+    for i, data in enumerate(dataset_loader):
+        inputs, labels = data
+        inputs, labels = Variable(inputs), Variable(labels)
+            
+        # forward
+        outputs = model(inputs)
+
+        # at this point outputs is a a 4x2 FloatTensor
+        # in its second return, torch.max will return the position of the 
+        # max element in each row (as a LongTensor i.e. an integer)
+        _, preds = torch.max(outputs.data, 1)
+
+
+        # print(preds)
+        # print(inputs.cpu().data)
+
+        for i, d in enumerate(inputs.cpu().data):
+            prediction = preds[i]
+            image_filename =  flattened_tensor_to_image_filename[tuple(d.numpy().flatten())]
+            pred = preds[i][0]
+
+            csv_writer.writerow([image_filename, str(pred)])
+        
 
 def optim_scheduler_ft(model, epoch, init_lr=0.001, lr_decay_epoch=7):
-    '''Learning rate scheduler'''
+    '''
+    Learning rate scheduler
+    Referenced from http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+    '''
     lr = init_lr * (0.1 ** (epoch // lr_decay_epoch))
 
     if epoch % lr_decay_epoch == 0:
@@ -137,6 +173,7 @@ def optim_scheduler_ft(model, epoch, init_lr=0.001, lr_decay_epoch=7):
     optimizer = optim.SGD(model.parameters(), lr=lr, momentum=0.9)
     return optimizer
 
+
 def pretrained_resnet_model():
     # 18-layer model
     model = models.resnet18(pretrained=True)  # pretrained on imagenet
@@ -144,37 +181,28 @@ def pretrained_resnet_model():
     model.fc = nn.Linear(num_ftrs, 2)
     return model
 
+
 if __name__ == '__main__':
-    phase_to_dataset = {
-        'train': training_dataset_from_dir(ROOT_TRAINING_DIR),
-        'eval': eval_dataset_from_dir(ROOT_EVAL_DIR)
-    }
+    test_dataset = eval_dataset_from_dir(ROOT_TEST_DIR)
 
-    phase_to_dataset_size = {x: len(phase_to_dataset[x]) for x in phase_to_dataset
-    }
+    flattened_tensor_to_image_filename = {}
+    for image_filename, _ in test_dataset.imgs:
+        img = datasets.folder.default_loader(image_filename)
+        img = eval_data_transform()(img)
+        img = tuple(img.numpy().flatten())
+        flattened_tensor_to_image_filename[img] = os.path.basename(image_filename)
 
-    phase_to_dataset_loader = {
-        x: loader_from_dataset(phase_to_dataset[x]) for x in phase_to_dataset
-    }
+    training_dataset = training_dataset_from_dir(ROOT_TRAINING_DIR)
+    training_dataset_loader = loader_from_dataset(training_dataset)
 
-    model = models.resnet18(pretrained=True)  # pretrained on imagenet
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 2)
-
+    model = pretrained_resnet_model()
     model = train_model(
         model=model,
-        phase_to_dataset_loader=phase_to_dataset_loader,
-        phase_to_dataset_size=phase_to_dataset_size,
+        dataset_loader=training_dataset_loader,
+        dataset_size=len(training_dataset),
         criterion=nn.CrossEntropyLoss(),
         optim_scheduler=optim_scheduler_ft,
-        num_epochs=DEFAULT_NUM_EPOCHS)
+        num_epochs=5,  # DEFAULT_NUM_EPOCHS
+    )
 
-    # test_dataset = eval_dataset_from_dir(ROOT_TEST_DIR)
-    # test_dataset_loader = loader_from_dataset(test_dataset)
-
-    '''
-    for i, data in enumerate(phase_to_dataset_loader['eval']):
-        print(data)
-        break
-    print(phase_to_dataset_loader['eval'].dataset.imgs)
-    '''
+    test_model(model, dataset=test_dataset, flattened_tensor_to_image_filename=flattened_tensor_to_image_filename)
