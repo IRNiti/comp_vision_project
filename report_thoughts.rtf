@@ -1,0 +1,45 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1504\cocoasubrtf600
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;\csgray\c100000;}
+\margl1440\margr1440\vieww13120\viewh12900\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 # Approach\
+We browsed literature to determine the current state of the art.  Our research led us to conclude that that deep residual neural networks ("ResNets") were the current state of the art for image classification ({\field{\*\fldinst{HYPERLINK "http://cs231n.github.io/convolutional-networks/"}}{\fldrslt http://cs231n.github.io/convolutional-networks/}}), and these have empirically proved to be very accurate in international competitions, having scored first place at the ILSVRC Imagenet classification competition ({\field{\*\fldinst{HYPERLINK "https://arxiv.org/abs/1512.03385"}}{\fldrslt https://arxiv.org/abs/1512.03385}}).   In particular, for our case, we thought transfer learning using such a ResNet pre-trained on a large imageset would be the best approach for us.\
+\
+Critically, because we use neural networks, we do not select the feature set to use.  This would have otherwise been a critical parameter and decision had we not used a neural network.  Instead, the neural network learns its own features: one layer might detect edges and subsequent layers might detect richer features (e.g. faces).\
+\
+As a brief note, we believe that his method should be allowed by the rules of the competition, as neural nets were explicitly allowed on the discussion board, and there were also no stipulations regarding other 3rd-party learning libraries (i.e. outside of scikit-learn).\
+\
+## Implementation Choice\
+Pytorch is an open source Python machine learning library, supported by Facebook's AI Research (FAIR) team, that provides algorithms for deep machine learning.  It operates on units of tensors - vector function transformations that could be thought of analogously to multi-dimensional arrays (such as featured in numpy).  Pytorch was particularly convenient to us because of its API offered easy access to ResNet models (of various depths) that were pre-trained on the classification of the 1-million image dataset ImageNet ({\field{\*\fldinst{HYPERLINK "http://pytorch.org/docs/torchvision/models.html"}}{\fldrslt http://pytorch.org/docs/torchvision/models.html}}).\
+\
+Because this existing model was already trained on an extensive dataset that already included many cats and dogs it was already suited to a similar task of classifying cats or dogs.  This, of course, is the advantage of transfer learning.\
+\
+# Implementation\
+The data provided on Kaggle was given as a folder of images and a csv of labels.  The PyTorch API, however, most conveniently allows loading images using an "ImageFolder" data loader API where training and eval images are arranged such that the labelled class of an image is the name of its parent directory ({\field{\*\fldinst{HYPERLINK "https://github.com/pytorch/vision#imagefolder"}}{\fldrslt https://github.com/pytorch/vision#imagefolder}}).\
+\
+So as a first step, we wrote a script which transformed the input into one that would be convenient of the PyTorch API.\
+\
+After we partitioned the data, we trained the pretrained resnet on the training data (note we did NOT train on the test data) for a few epochs.  Then we ran the test set through this model and wrote the predictions to the csv in the appropriate format.\
+\
+## Parameter Selection\
+Hyperparameters, such as the learning rate and number of epochs, were chosen by searching for default recommendations online (see {\field{\*\fldinst{HYPERLINK "http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#training-the-model"}}{\fldrslt http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html#training-the-model}} or  {\field{\*\fldinst{HYPERLINK "https://github.com/pytorch/examples/tree/master/imagenet"}}{\fldrslt https://github.com/pytorch/examples/tree/master/imagenet#training}}).  Since we were using a transfer learning with a pre-trained model, we chose an initial learning rate of 0.001 because we speculated that there was not much more to learn.  We're unsure if this is strictly correct, but we got good results with our first run.\
+\
+As we were CPU-bound and training was very time-consuming, in the interest of time, we chose the more shallow ResNet available (resnet18 and resnet34) in the API.  \
+\
+# Results\
+On our initial run, our training phase lasted a mere two epochs, and we used the shallowest ResNet available in PyTorch, resnet18 (i.e a residual network 18-layers deep), that was again pretrained on ImageNet.  Our self-reported training accuracy on the training set was slightly less than 90% after two epochs, but the same model scored 96% on Kaggle.  In our next run, we used the next shallowest ResNet available, resnet34, and trainedfor five epochs instead of just two.  Already we saw that this lead to higher self-reported training accuracy after just two epochs (over 90%).  The self-reported training accuracy after the 5th and last epoch was 94.29%, but this time the model scored 99.2% on Kaggle.\
+\
+\
+Possible future improvements:\
+\
+Torch, like most current deep-learning frameworks (e.g. TensorFlow), is optimized for distributed computation using GPUs.  We did not have access to a GPU, and training on a CPU was extremely slow.  Thus, we did not have time to iterate on various hyperparameters such as the learning rate or depth of the neural network.  We mostly used default hyperparameters we saw on an online parameters, and in fact greatly reduced the number of training epochs to just five (whereas most examples we saw online trained for at least a few dozen epochs), again due to time considerations.  Either (or both) using a deeper ResNet (e.g. resnet-100 or resnet-200) or training for longer would have led to even greater accuracy.  Deeper ResNets have empirically proven to lead to richer features and thus greater accuracy ({\field{\*\fldinst{HYPERLINK "https://github.com/jcjohnson/cnn-benchmarks"}}{\fldrslt https://github.com/jcjohnson/cnn-benchmarks}}). This actually is by design, unlike "plain" neural networks, which sometimes empirically have greater training error at greater depth (see {\field{\*\fldinst{HYPERLINK "http://icml.cc/2016/tutorials/icml2016_tutorial_deep_residual_networks_kaiminghe.pdf"}}{\fldrslt http://icml.cc/2016/tutorials/icml2016_tutorial_deep_residual_networks_kaiminghe.pdf}} p. 29-30).  As mentioned, one thing to consider tuning would be the learning rate.\
+\
+Another approach we could have used would have been to use the ResNet as a fixed feature extractor.  Rather than re-train and back propagate through the entire network in each iteration of the training phase, we "freeze" most of the network and only train the last layer.  Our interpretation is that is effectively taken the features of the rest of the neural network (i.e. excluding the final layer) and then training a one-layer classifier based on those features.  Because the resnet was already pre-trained on ImageNet, the features from the rest of the network are already good features for image classification. \
+\
+This would have likely be less time-consuming to train, especially given we did not have a GPU.\
+\
+\
+}

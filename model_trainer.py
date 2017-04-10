@@ -64,6 +64,7 @@ def train_model(model, dataset_loader, dataset_size, criterion, optim_scheduler,
     '''
     Following code referenced from http://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
     '''
+
     since = time.time()
 
     best_model = model
@@ -84,7 +85,7 @@ def train_model(model, dataset_loader, dataset_size, criterion, optim_scheduler,
         # Iterate over data.
         for i, data in enumerate(dataset_loader):
             # get the inputs and wrap in Variable
-            inputs, labels = dataz
+            inputs, labels = data
             inputs, labels = Variable(inputs), Variable(labels)
 
             # zero the parameter gradients
@@ -127,10 +128,7 @@ def train_model(model, dataset_loader, dataset_size, criterion, optim_scheduler,
     return best_model
 
 def test_model(model, dataset, flattened_tensor_to_image_filename):
-    dataset_loader = torch.utils.data.DataLoader(dataset,
-                                       batch_size=4,
-                                       shuffle=True,
-                                       num_workers=4)
+    dataset_loader = loader_from_dataset(dataset)
 
     csvfile = open('output2.csv', 'w')
     csv_writer = csv.writer(csvfile, delimiter=',')
@@ -147,10 +145,6 @@ def test_model(model, dataset, flattened_tensor_to_image_filename):
         # in its second return, torch.max will return the position of the 
         # max element in each row (as a LongTensor i.e. an integer)
         _, preds = torch.max(outputs.data, 1)
-
-
-        # print(preds)
-        # print(inputs.cpu().data)
 
         for i, d in enumerate(inputs.cpu().data):
             prediction = preds[i]
@@ -176,7 +170,7 @@ def optim_scheduler_ft(model, epoch, init_lr=0.001, lr_decay_epoch=7):
 
 def pretrained_resnet_model():
     # 18-layer model
-    model = models.resnet18(pretrained=True)  # pretrained on imagenet
+    model = models.resnet34(pretrained=True)  # pretrained on imagenet
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 2)
     return model
@@ -185,6 +179,9 @@ def pretrained_resnet_model():
 if __name__ == '__main__':
     test_dataset = eval_dataset_from_dir(ROOT_TEST_DIR)
 
+    # Hacky approach: create map from pixel data to image filename, as there's 
+    # no convenient way to get the original image filename from the output of
+    # the model
     flattened_tensor_to_image_filename = {}
     for image_filename, _ in test_dataset.imgs:
         img = datasets.folder.default_loader(image_filename)

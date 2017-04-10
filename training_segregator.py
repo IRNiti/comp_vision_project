@@ -68,6 +68,8 @@ if __name__ == '__main__':
         except IOError as e:
             print(e)  # shouldn't happen
 
+    # Evenly put test images in either cats or dogs, regardless of what the
+    # image actually is
     for i, image_filename in enumerate(os.listdir(ORIGINAL_COMBINED_TEST_DIR)):
         src_absolute_path = os.path.join(ORIGINAL_COMBINED_TEST_DIR, image_filename)
         
