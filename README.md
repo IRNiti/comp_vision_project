@@ -20,6 +20,7 @@ first segregate the data into a directory structure appropriate for the PyTorch 
 &nbsp;&nbsp;/cats
 
 &nbsp;&nbsp;/dogs
+
 /test
 
 &nbsp;&nbsp;/cats
