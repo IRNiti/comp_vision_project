@@ -11,9 +11,9 @@ Submission for ECSE 415 Dogs and Cats Classification Competition (https://inclas
 2. 
   After downloading data from Kaggle (https://inclass.kaggle.com/c/ecse415-classification/), run
 
-    `python3 training_segregator.py`
+python3 training_segregator.py
 
-first segregate the data into a directory structure appropriate for the PyTorch ImageFolder Dataset API:
+to first segregate the data into a directory structure appropriate for the PyTorch ImageFolder Dataset API:
   
 /train
 
