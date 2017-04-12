@@ -16,10 +16,14 @@ Submission for ECSE 415 Dogs and Cats Classification Competition (https://inclas
 first segregate the data into a directory structure appropriate for the PyTorch ImageFolder Dataset API:
   
 /train
+
 &nbsp;&nbsp;/cats
+
 &nbsp;&nbsp;/dogs
 /test
+
 &nbsp;&nbsp;/cats
+
 &nbsp;&nbsp;/dogs
 
   Note: The original training data should be in a folder named X_Train.  If using different test data, put the test data in the X_Test folder
