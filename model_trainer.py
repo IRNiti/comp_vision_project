@@ -24,7 +24,7 @@ ORIGINAL_COMBINED_TEST_DIR = 'X_Test'
 
 DEFAULT_NUM_EPOCHS = 5
 
-
+#the next two functions are used to transform images into tensors
 def training_data_transform():
     '''Data augmentation and normalization'''
     return transforms.Compose([
@@ -88,21 +88,22 @@ def train_model(model, dataset_loader, dataset_size, criterion, optim_scheduler,
             inputs, labels = data
             inputs, labels = Variable(inputs), Variable(labels)
 
-            # zero the parameter gradients
+            # zero the parameter gradients to avoid accumulating them when backpropagating
             optimizer.zero_grad()
 
             # forward
             outputs = model(inputs)
 
             # at this point outputs is a a 4x2 FloatTensor
-            # in its second return, torch.max will return the position of the 
+            # in its second return, torch.max will return the position of the
             # max element in each row (as a LongTensor i.e. an integer)
             _, preds = torch.max(outputs.data, 1)
 
             loss = criterion(outputs, labels)
 
-            # backward + optimize since we are in training phase
+            # backpropagate to compute gradient descent
             loss.backward()
+            # update weights using function defined in optim_scheduler_ft function
             optimizer.step()
 
             # statistics
@@ -137,12 +138,12 @@ def test_model(model, dataset, flattened_tensor_to_image_filename):
     for i, data in enumerate(dataset_loader):
         inputs, labels = data
         inputs, labels = Variable(inputs), Variable(labels)
-            
+
         # forward
         outputs = model(inputs)
 
         # at this point outputs is a a 4x2 FloatTensor
-        # in its second return, torch.max will return the position of the 
+        # in its second return, torch.max will return the position of the
         # max element in each row (as a LongTensor i.e. an integer)
         _, preds = torch.max(outputs.data, 1)
 
@@ -152,8 +153,8 @@ def test_model(model, dataset, flattened_tensor_to_image_filename):
             pred = preds[i][0]
 
             csv_writer.writerow([image_filename, str(pred)])
-        
 
+# function used to determine the weight adjustments in the backward phase of training
 def optim_scheduler_ft(model, epoch, init_lr=0.001, lr_decay_epoch=7):
     '''
     Learning rate scheduler
@@ -169,7 +170,7 @@ def optim_scheduler_ft(model, epoch, init_lr=0.001, lr_decay_epoch=7):
 
 
 def pretrained_resnet_model():
-    # 18-layer model
+    # 34-layer model
     model = models.resnet34(pretrained=True)  # pretrained on imagenet
     num_ftrs = model.fc.in_features
     model.fc = nn.Linear(num_ftrs, 2)
@@ -179,7 +180,7 @@ def pretrained_resnet_model():
 if __name__ == '__main__':
     test_dataset = eval_dataset_from_dir(ROOT_TEST_DIR)
 
-    # Hacky approach: create map from pixel data to image filename, as there's 
+    # Hacky approach: create map from pixel data to image filename, as there's
     # no convenient way to get the original image filename from the output of
     # the model
     flattened_tensor_to_image_filename = {}
