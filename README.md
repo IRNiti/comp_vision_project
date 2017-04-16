@@ -5,12 +5,12 @@ Vasundhara Gupta & Raluca Niti
 Submission for ECSE 415 Dogs and Cats Classification Competition (https://inclass.kaggle.com/c/ecse415-classification/)
 
 ## Instructions
-1. Follow instructions to install PyTorch on http://pytorch.org/ (e.g. using pip)
+1. Follow instructions to install PyTorch on http://pytorch.org/ (e.g. using `conda` or `pip`).  Note: Pytorch is only supported on OSX and Linux
 
 2. 
   After downloading data from Kaggle (https://inclass.kaggle.com/c/ecse415-classification/), run
 
-`python3 training_segregator.py`
+`python3 training_segregator.py` 
 
 to first segregate the data into a directory structure appropriate for the PyTorch ImageFolder Dataset API:
   
@@ -31,8 +31,9 @@ to first segregate the data into a directory structure appropriate for the PyTor
 
 Then run
 
-`sudo python3 model_trainer.py`
+`sudo python3 model_trainer.py` .  Alternatively, open `model_trainer.ipynb` with Jupyter using `sudo` privileges: `sudo jupyter notebook`
 
 Note training resnet32 over 5 epochs took 3.5 hours on our CPU.
 
 The output will be in `output.csv`
+
